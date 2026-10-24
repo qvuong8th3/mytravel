@@ -5,6 +5,7 @@
 
 let currentTab = "home";
 let currentDayId = "day_1";
+let currentExpenseDayId = "day_1";
 let foodFilter = "all";
 let foodWishlistFilter = "all";
 let destinationWishlistFilter = "all";
@@ -18,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDestinations();
     renderItineraryTabs();
     renderItineraryDay(currentDayId);
+    renderExpenseTabs();
+    renderExpenseDay(currentExpenseDayId);
     updateSyncStatusIndicator();
   });
 
@@ -34,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderDestinations();
   renderItineraryTabs();
   renderItineraryDay(currentDayId);
+  renderExpenseTabs();
+  renderExpenseDay(currentExpenseDayId);
   initForms();
   initSettingsModal();
   updateSyncStatusIndicator();
@@ -749,9 +754,12 @@ async function promptAddNewDay() {
     const theme = prompt("Chủ đề hoặc điểm nhấn của ngày này (không bắt buộc):", "Tự do khám phá và vui chơi");
     const newDay = await db.addDay(title, theme);
     currentDayId = newDay.id;
+    currentExpenseDayId = newDay.id;
     renderItineraryTabs();
     renderItineraryDay(newDay.id);
-    showToast(`Đã thêm Ngày ${newNum} vào lịch trình!`);
+    renderExpenseTabs();
+    renderExpenseDay(newDay.id);
+    showToast(`Đã thêm Ngày ${newNum} vào chuyến đi!`);
   }
 }
 
@@ -759,9 +767,12 @@ async function confirmDeleteDay(dayId, num) {
   if (confirm(`Bạn có chắc muốn xóa Ngày ${num} không?`)) {
     await db.deleteDay(dayId);
     renderItineraryTabs();
+    renderExpenseTabs();
     const it = db.getItinerary();
     currentDayId = it.length > 0 ? it[0].id : "";
+    currentExpenseDayId = currentDayId;
     renderItineraryDay(currentDayId);
+    renderExpenseDay(currentExpenseDayId);
     showToast(`Đã xóa Ngày ${num}`);
   }
 }
@@ -971,6 +982,418 @@ async function handleQuickAddSubmit(e) {
   selectItineraryDay(dayId);
   switchTab("itinerary");
   showToast(`Đã thêm vào lịch trình thành công!`);
+}
+
+// ================= CHI PHÍ TỪNG NGÀY (EXPENSES) =================
+function renderExpenseTabs() {
+  const container = document.getElementById("expenses-days-tabs");
+  if (!container) return;
+
+  const itinerary = db.getItinerary();
+
+  // Kiểm tra nếu currentExpenseDayId không tồn tại thì chọn ngày đầu tiên
+  if (!itinerary.some(d => d.id === currentExpenseDayId) && itinerary.length > 0) {
+    currentExpenseDayId = itinerary[0].id;
+  }
+
+  container.innerHTML = itinerary.map(day => `
+    <button onclick="selectExpenseDay('${day.id}')" 
+            class="day-tab-btn px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 border flex items-center gap-2 ${day.id === currentExpenseDayId ? 'active' : 'bg-white text-slate-700 border-slate-200 hover:border-pink-300'}">
+      <i class="fas fa-calendar-day"></i>
+      <span>Ngày ${day.dayNumber}</span>
+    </button>
+  `).join("") + `
+    <button onclick="promptAddNewDay()" 
+            class="px-4 py-2 rounded-2xl text-xs font-semibold text-rose-800 border border-rose-200 hover:brightness-95 transition flex items-center gap-1.5 shadow-sm"
+            style="background-color: #FFD1DC;" 
+            title="Thêm Ngày 4, Ngày 5 nếu chuyến đi dài hơn">
+      <i class="fas fa-plus"></i> Thêm ngày
+    </button>
+  `;
+}
+
+function selectExpenseDay(dayId) {
+  currentExpenseDayId = dayId;
+  renderExpenseTabs();
+  renderExpenseDay(dayId);
+}
+
+function renderExpenseDay(dayId) {
+  const day = db.getDay(dayId);
+  const container = document.getElementById("expenses-day-content");
+  if (!container) return;
+
+  if (!day) {
+    container.innerHTML = `<p class="p-8 text-center text-slate-400">Chưa có thông tin ngày này.</p>`;
+    return;
+  }
+
+  const expenses = day.expenses || [];
+  const totalDayAmount = db.getTotalDayExpenses(day.id);
+  const tripTotals = db.getTotalTripExpenses();
+  const itinerary = db.getItinerary();
+
+  container.innerHTML = `
+    <!-- Tiêu đề ngày & Nút chức năng (Tone màu #FFD1DC ngọt ngào y chang mục lịch trình) -->
+    <div class="rounded-3xl p-6 sm:p-7 mb-6 shadow-md relative overflow-hidden border border-rose-200/90" style="background-color: #FFD1DC;">
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/75 text-rose-900 border border-rose-200/80 text-xs font-semibold backdrop-blur-sm mb-2.5 shadow-sm">
+            <i class="fas fa-receipt text-rose-500"></i> Chi Phí Chi Tiết
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-rose-950 tracking-tight">${day.title}</h2>
+          <p class="text-rose-800 text-sm mt-1.5 font-medium">${day.theme || "Ghi chép chi tiêu ăn uống & vui chơi trong ngày"}</p>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-2xl text-center border border-rose-200/80 shadow-sm">
+            <span class="text-xs text-rose-700 block font-medium">Tổng trong ngày</span>
+            <span class="text-lg font-black text-rose-950">${formatMoney(totalDayAmount)}</span>
+          </div>
+          <button onclick="openAddExpenseModal('${day.id}')" 
+                  class="px-5 py-2.5 rounded-2xl bg-white text-rose-900 text-xs sm:text-sm font-bold hover:bg-rose-50 transition shadow-md border border-rose-200/70 flex items-center gap-2">
+            <i class="fas fa-plus-circle text-rose-500 text-base"></i> + Thêm Khoản Chi
+          </button>
+        </div>
+      </div>
+      
+      <!-- Họa tiết mờ lãng mạn -->
+      <div class="absolute -bottom-6 -right-6 text-rose-300/30 text-9xl pointer-events-none">
+        <i class="fas fa-coins"></i>
+      </div>
+    </div>
+
+    <!-- Khung Điền Nhanh: Món ăn & Số tiền (Chỉ cần gõ và nhấn dấu +) -->
+    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm mb-6">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+          <i class="fas fa-cart-plus text-rose-500"></i>
+          <span>Thêm Món Ăn & Số Tiền Của Ngày ${day.dayNumber}</span>
+        </h3>
+        <span class="text-xs text-slate-400 hidden sm:inline">Tự do điền số món ăn và số tiền, hệ thống tự động cộng dồn</span>
+      </div>
+
+      <form onsubmit="handleInlineAddExpense(event, '${day.id}')" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <!-- Tên món ăn / đồ uống / dịch vụ -->
+        <div class="sm:col-span-6 relative">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Món Ăn / Quán Ăn / Dịch Vụ <span class="text-rose-500">*</span></label>
+          <div class="relative">
+            <i class="fas fa-utensils absolute left-3.5 top-3.5 text-rose-400 text-xs"></i>
+            <input type="text" id="inline-exp-name-${day.id}" required 
+                   placeholder="VD: Bánh xèo 4 cái, Bún chả cá 2 tô, Ốc đêm..." 
+                   class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-rose-400 text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <!-- Số tiền -->
+        <div class="sm:col-span-3 relative">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Số Tiền (VNĐ) <span class="text-rose-500">*</span></label>
+          <div class="relative">
+            <i class="fas fa-coins absolute left-3.5 top-3.5 text-emerald-500 text-xs"></i>
+            <input type="text" id="inline-exp-amount-${day.id}" required 
+                   placeholder="VD: 140.000 hoặc 140k" 
+                   class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-rose-400 text-xs sm:text-sm font-bold text-emerald-700">
+          </div>
+        </div>
+
+        <!-- Người chi -->
+        <div class="sm:col-span-2">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Ai Chi?</label>
+          <select id="inline-exp-payer-${day.id}" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium text-slate-700">
+            <option value="Cả hai">❤️ Quỹ chung</option>
+            <option value="Anh">👨 Anh chi</option>
+            <option value="Em">👩 Em chi</option>
+          </select>
+        </div>
+
+        <!-- Nút + Thêm -->
+        <div class="sm:col-span-1 flex items-end">
+          <button type="submit" style="background-color: #FFD1DC;" 
+                  class="w-full py-2.5 rounded-xl text-rose-950 font-black text-sm border border-rose-200 hover:brightness-95 shadow-sm transition flex items-center justify-center gap-1.5"
+                  title="Nhấn để thêm món ăn và số tiền (+)">
+            <i class="fas fa-plus text-rose-600 text-base"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Danh sách các món ăn & khoản chi trong ngày (Không phân chia sáng trưa chiều tối) -->
+    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+          <i class="fas fa-list-ul text-rose-500"></i>
+          <span>Danh Sách Các Khoản Chi Đã Dùng Trong Ngày</span>
+          <span class="text-xs font-normal text-slate-400">(${expenses.length} món/khoản)</span>
+        </h3>
+        <button onclick="openAddExpenseModal('${day.id}')" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 hover:underline">
+          <i class="fas fa-plus-circle"></i> Thêm chi tiết
+        </button>
+      </div>
+
+      ${expenses.length === 0 ? `
+        <div class="py-10 text-center text-slate-300 border border-dashed border-slate-100 rounded-2xl">
+          <i class="fas fa-receipt text-4xl mb-2 text-rose-200"></i>
+          <p class="text-xs font-medium text-slate-500">Chưa có khoản chi nào cho Ngày ${day.dayNumber}.</p>
+          <p class="text-[11px] text-slate-400 mt-1">Hai bạn chỉ cần điền tên món ăn và số tiền ở ô phía trên rồi bấm dấu (+) nhé!</p>
+        </div>
+      ` : `
+        <div class="space-y-3">
+          ${expenses.map((item, idx) => renderExpenseItemRow(day.id, item, idx)).join("")}
+        </div>
+      `}
+    </div>
+
+    <!-- Ô CUỐI CÙNG TỰ ĐỘNG TÍNH TỔNG SỐ TIỀN DÙNG TRONG NGÀY ĐÓ -->
+    <div class="rounded-3xl p-6 sm:p-7 shadow-lg border border-rose-200 mt-6 text-slate-800 relative overflow-hidden" style="background: linear-gradient(135deg, #FFF5F7 0%, #FFE9EE 100%);">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative z-10">
+        
+        <div class="flex items-center gap-3.5">
+          <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-rose-200 shrink-0">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-rose-600 uppercase tracking-wider block flex items-center gap-1.5">
+              <i class="fas fa-check-circle"></i> Ô Tổng Kết Tự Động
+            </span>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Tổng Tiền Dùng Trong Ngày ${day.dayNumber}
+            </h3>
+            <p class="text-xs sm:text-sm text-slate-600 mt-0.5">
+              Tự động cộng từ tất cả <strong>${expenses.length} món ăn & khoản chi</strong> của Ngày ${day.dayNumber}
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white/95 backdrop-blur-md px-6 py-4 rounded-2xl border border-rose-200/90 shadow-md text-left sm:text-right shrink-0">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-0.5">TỔNG CỘNG HÔM NAY:</span>
+          <span class="text-2xl sm:text-4xl font-black text-rose-600 tracking-tight block">
+            ${formatMoney(totalDayAmount)}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Tổng chi toàn chuyến đi đối chiếu -->
+      <div class="mt-5 pt-4 border-t border-rose-200/70 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 gap-2 relative z-10">
+        <span class="flex items-center gap-1.5 font-medium text-slate-700">
+          <i class="fas fa-wallet text-emerald-600"></i>
+          Tổng chi toàn bộ chuyến đi (${itinerary.length} ngày): <strong class="text-rose-700 font-bold text-sm">${formatMoney(tripTotals.total)}</strong>
+        </span>
+        <div class="flex items-center gap-3 text-[11px] font-medium">
+          <span class="px-2 py-0.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-100">👨 Anh: <strong>${formatMoney(tripTotals.male)}</strong></span>
+          <span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-100">👩 Em: <strong>${formatMoney(tripTotals.female)}</strong></span>
+          <span class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-100">❤️ Chung: <strong>${formatMoney(tripTotals.both)}</strong></span>
+        </div>
+      </div>
+
+      <!-- Icon mờ trang trí phía dưới -->
+      <div class="absolute -bottom-8 -right-8 text-rose-200/40 text-9xl pointer-events-none">
+        <i class="fas fa-hand-holding-usd"></i>
+      </div>
+    </div>
+
+    <!-- Nút xóa ngày nếu nhiều hơn 3 ngày -->
+    ${db.getItinerary().length > 3 ? `
+      <div class="mt-8 text-center">
+        <button onclick="confirmDeleteDay('${day.id}', ${day.dayNumber})" class="text-xs text-red-500 hover:underline">
+          <i class="fas fa-trash-alt"></i> Xóa Ngày ${day.dayNumber} này
+        </button>
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderExpenseItemRow(dayId, item, index) {
+  const isAnh = item.payer === "Anh";
+  const isEm = item.payer === "Em";
+  const badgeClass = isAnh ? "badge-anh" : (isEm ? "badge-em" : "badge-both");
+  const payerLabel = isAnh ? "Anh chi" : (isEm ? "Em chi" : "Quỹ chung");
+
+  return `
+    <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-100 hover:border-rose-200 shadow-sm hover:shadow transition flex items-center justify-between gap-3 group">
+      
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm shrink-0 font-bold">
+          ${index + 1}
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-0.5">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base truncate">
+              ${item.name}
+            </h4>
+            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full ${badgeClass}">
+              ${payerLabel}
+            </span>
+          </div>
+
+          ${item.notes ? `
+            <p class="text-xs text-slate-500 italic truncate">
+              <i class="fas fa-sticky-note text-amber-500 mr-1 text-[10px]"></i> ${item.notes}
+            </p>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <span class="text-base sm:text-lg font-black text-emerald-600 whitespace-nowrap">
+          ${formatMoney(item.amount)}
+        </span>
+
+        <div class="flex items-center gap-1">
+          <button onclick="openEditExpenseModal('${dayId}', '${item.id}')" 
+                  class="p-1.5 text-slate-300 hover:text-cyan-600 rounded-lg transition text-xs" 
+                  title="Sửa món này">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button onclick="deleteExpenseItem('${dayId}', '${item.id}')" 
+                  class="p-1.5 text-slate-300 hover:text-red-500 rounded-lg transition text-xs" 
+                  title="Xóa khoản chi này">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// Xử lý Thêm nhanh trực tiếp (Inline Add)
+async function handleInlineAddExpense(e, dayId) {
+  e.preventDefault();
+  const nameInput = document.getElementById(`inline-exp-name-${dayId}`);
+  const amountInput = document.getElementById(`inline-exp-amount-${dayId}`);
+  const payerInput = document.getElementById(`inline-exp-payer-${dayId}`);
+
+  if (!nameInput || !amountInput) return;
+
+  const name = nameInput.value.trim();
+  const amountStr = amountInput.value.trim();
+  const payer = payerInput ? payerInput.value : "Cả hai";
+
+  if (!name) {
+    alert("Vui lòng nhập tên món ăn hoặc khoản chi!");
+    return;
+  }
+  if (!amountStr) {
+    alert("Vui lòng nhập số tiền!");
+    return;
+  }
+
+  await db.addExpense(dayId, {
+    name,
+    amount: amountStr,
+    payer,
+    notes: ""
+  });
+
+  nameInput.value = "";
+  amountInput.value = "";
+  renderExpenseDay(dayId);
+  showToast(`Đã thêm "${name}" (${formatMoney(amountStr)}) vào Ngày!`);
+}
+
+// Mở modal thêm/sửa chi phí
+function openAddExpenseModal(dayId, expId = null) {
+  const modal = document.getElementById("modal-add-expense");
+  const form = document.getElementById("form-add-expense");
+  const daySelect = document.getElementById("modal-exp-day");
+  const titleText = document.getElementById("modal-exp-title-text");
+  const idInput = document.getElementById("modal-exp-id");
+  const nameInput = document.getElementById("modal-exp-name");
+  const amountInput = document.getElementById("modal-exp-amount");
+  const payerSelect = document.getElementById("modal-exp-payer");
+  const notesInput = document.getElementById("modal-exp-notes");
+
+  if (!modal || !form || !daySelect) return;
+
+  const itinerary = db.getItinerary();
+  daySelect.innerHTML = itinerary.map(d => `
+    <option value="${d.id}" ${d.id === dayId ? 'selected' : ''}>Ngày ${d.dayNumber}: ${d.title}</option>
+  `).join("");
+
+  form.reset();
+
+  if (expId) {
+    const day = db.getDay(dayId);
+    const exp = day && day.expenses ? day.expenses.find(e => e.id === expId) : null;
+    if (exp) {
+      if (titleText) titleText.textContent = "Chỉnh Sửa Khoản Chi Tiêu";
+      if (idInput) idInput.value = exp.id;
+      if (nameInput) nameInput.value = exp.name || "";
+      if (amountInput) amountInput.value = exp.amount ? exp.amount.toLocaleString("vi-VN") : "";
+      if (payerSelect) payerSelect.value = exp.payer || "Cả hai";
+      if (notesInput) notesInput.value = exp.notes || "";
+    }
+  } else {
+    if (titleText) titleText.textContent = "Thêm Khoản Chi Tiêu Mới";
+    if (idInput) idInput.value = "";
+    if (daySelect) daySelect.value = dayId;
+  }
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function openEditExpenseModal(dayId, expId) {
+  openAddExpenseModal(dayId, expId);
+}
+
+function closeAddExpenseModal() {
+  const modal = document.getElementById("modal-add-expense");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+async function handleAddExpenseSubmit(e) {
+  e.preventDefault();
+  const expId = document.getElementById("modal-exp-id").value;
+  const dayId = document.getElementById("modal-exp-day").value;
+  const name = document.getElementById("modal-exp-name").value.trim();
+  const amountStr = document.getElementById("modal-exp-amount").value.trim();
+  const payer = document.getElementById("modal-exp-payer").value;
+  const notes = document.getElementById("modal-exp-notes").value.trim();
+
+  if (!name) {
+    alert("Vui lòng nhập tên món ăn hoặc khoản chi!");
+    return;
+  }
+  if (!amountStr) {
+    alert("Vui lòng nhập số tiền!");
+    return;
+  }
+
+  if (expId) {
+    await db.updateExpense(dayId, expId, {
+      name,
+      amount: amountStr,
+      payer,
+      notes
+    });
+    showToast("Đã cập nhật khoản chi!");
+  } else {
+    await db.addExpense(dayId, {
+      name,
+      amount: amountStr,
+      payer,
+      notes
+    });
+    showToast("Đã thêm khoản chi vào ngày!");
+  }
+
+  closeAddExpenseModal();
+  selectExpenseDay(dayId);
+  switchTab("expenses");
+}
+
+async function deleteExpenseItem(dayId, expId) {
+  if (confirm("Hai bạn có chắc muốn xóa khoản chi này không?")) {
+    await db.deleteExpense(dayId, expId);
+    renderExpenseDay(dayId);
+    showToast("Đã xóa khoản chi");
+  }
 }
 
 // ================= SETTINGS & FIREBASE SYNC =================

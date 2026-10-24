@@ -7,6 +7,32 @@
 const STORAGE_KEY = "quynhon_couple_trip_v1";
 const SETTINGS_KEY = "quynhon_firebase_config_v1";
 
+// Hàm chuyển đổi chuỗi tiền thành số nguyên (Hỗ trợ: 50k, 50.000, 50000, 1.5tr...)
+function parseMoney(val) {
+  if (typeof val === "number") return isNaN(val) ? 0 : Math.round(val);
+  if (!val) return 0;
+  let str = val.toString().trim().toLowerCase();
+  if (str.includes("tr") || str.includes("triệu")) {
+    let numPart = str.replace(/[^0-9.,]/g, "").replace(",", ".");
+    let parsed = parseFloat(numPart);
+    return isNaN(parsed) ? 0 : Math.round(parsed * 1000000);
+  }
+  if (str.endsWith("k") || str.includes("k")) {
+    let numPart = str.replace(/[^0-9.,]/g, "").replace(",", ".");
+    let parsed = parseFloat(numPart);
+    return isNaN(parsed) ? 0 : Math.round(parsed * 1000);
+  }
+  let digits = str.replace(/[^0-9]/g, "");
+  let num = parseInt(digits, 10);
+  return isNaN(num) ? 0 : num;
+}
+
+// Hàm định dạng số tiền sang định dạng tiền Việt (VD: 50.000 đ)
+function formatMoney(amount) {
+  const num = typeof amount === "number" ? amount : parseMoney(amount);
+  return (num || 0).toLocaleString("vi-VN") + " đ";
+}
+
 // Cấu hình Firebase mặc định dùng chung cho tất cả mọi người mở link web (Oanh & Vương)
 const DEFAULT_FIREBASE_CONFIG = {
   databaseURL: "https://mytravel-d332a-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -93,6 +119,11 @@ class TripDatabase {
               cost: "250.000đ",
               completed: false
             }
+          ],
+          expenses: [
+            { id: "exp_101", name: "Bún chả cá Ngọc Liên (2 tô)", amount: 70000, payer: "Anh", notes: "Ăn sáng ngày đầu tiên" },
+            { id: "exp_102", name: "Bánh xèo tôm nhảy Gia Vỹ (4 cái)", amount: 140000, payer: "Em", notes: "Cuốn rau mầm giòn rụm" },
+            { id: "exp_103", name: "Đại tiệc ốc đêm Thúy Kiều & Chè Nhớ", amount: 250000, payer: "Cả hai", notes: "Ốc hương xào me & chè thái" }
           ]
         },
         {
@@ -150,6 +181,11 @@ class TripDatabase {
               cost: "300.000đ",
               completed: false
             }
+          ],
+          expenses: [
+            { id: "exp_201", name: "Bánh hỏi lòng heo Mẫn (2 phần)", amount: 100000, payer: "Anh", notes: "Ăn sáng trước khi đi Eo Gió" },
+            { id: "exp_202", name: "Đại tiệc hải sản Leng Keng Nhơn Lý", amount: 750000, payer: "Cả hai", notes: "Cua huỳnh đế & mực nướng" },
+            { id: "exp_203", name: "Cafe ngắm hoàng hôn Surf Bar", amount: 120000, payer: "Em", notes: "2 ly mocktail bãi biển" }
           ]
         },
         {
@@ -195,6 +231,11 @@ class TripDatabase {
               cost: "500.000đ",
               completed: false
             }
+          ],
+          expenses: [
+            { id: "exp_301", name: "Bún rạm & Bún tôm Mỹ Hạnh", amount: 80000, payer: "Em", notes: "Kèm bánh tráng nướng" },
+            { id: "exp_302", name: "Gà chỉ nướng cơm lam Sáu Cao", amount: 320000, payer: "Anh", notes: "Gà đồi thả vườn nướng lu" },
+            { id: "exp_303", name: "Bánh ít lá gai & nem Chợ Huyện làm quà", amount: 350000, payer: "Cả hai", notes: "Đóng thùng xốp mang về" }
           ]
         }
       ],
@@ -259,11 +300,23 @@ class TripDatabase {
       destinations = rawData.customPlaces.filter(p => p.type && (p.type.includes("Check-in") || p.type.includes("Cafe") || p.type.includes("Biển")));
     }
 
+    const defaultData = this.getDefaultData();
+    let itinerary = (rawData.itinerary && rawData.itinerary.length) ? rawData.itinerary : defaultData.itinerary;
+    itinerary.forEach((day, idx) => {
+      if (!day.activities || !Array.isArray(day.activities)) {
+        day.activities = [];
+      }
+      if (!day.expenses || !Array.isArray(day.expenses)) {
+        const defaultDay = defaultData.itinerary[idx];
+        day.expenses = (defaultDay && defaultDay.id === day.id && defaultDay.expenses) ? [...defaultDay.expenses] : [];
+      }
+    });
+
     return {
-      tripInfo: { ...this.getDefaultData().tripInfo, ...(rawData.tripInfo || {}) },
-      itinerary: (rawData.itinerary && rawData.itinerary.length) ? rawData.itinerary : this.getDefaultData().itinerary,
-      customFoods: (foods && foods.length) ? foods : this.getDefaultData().customFoods,
-      customDestinations: (destinations && destinations.length) ? destinations : this.getDefaultData().customDestinations,
+      tripInfo: { ...defaultData.tripInfo, ...(rawData.tripInfo || {}) },
+      itinerary: itinerary,
+      customFoods: (foods && foods.length) ? foods : defaultData.customFoods,
+      customDestinations: (destinations && destinations.length) ? destinations : defaultData.customDestinations,
       customPlaces: []
     };
   }
@@ -535,7 +588,8 @@ class TripDatabase {
       dayNumber: nextNumber,
       title: title || `Ngày ${nextNumber}: Tiếp Tục Khám Phá Quy Nhơn`,
       theme: theme || "Dự định tuyệt vời tiếp theo của 2 bạn",
-      activities: []
+      activities: [],
+      expenses: []
     };
 
     this.data.itinerary.push(newDay);
@@ -607,6 +661,84 @@ class TripDatabase {
     day.activities = day.activities.filter(a => a.id !== actId);
     await this.commitChanges();
     return true;
+  }
+
+  // ================= CHI PHÍ TỪNG NGÀY =================
+  getExpenses(dayId) {
+    const day = this.getDay(dayId);
+    return day && day.expenses ? day.expenses : [];
+  }
+
+  async addExpense(dayId, expenseData) {
+    const day = this.data.itinerary.find(d => d.id === dayId);
+    if (!day) return null;
+
+    if (!day.expenses) day.expenses = [];
+
+    const amt = parseMoney(expenseData.amount);
+
+    const newExpense = {
+      id: "exp_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      name: expenseData.name || "Món ăn / Khoản chi",
+      amount: amt,
+      payer: expenseData.payer || "Cả hai",
+      notes: expenseData.notes || "",
+      createdAt: new Date().toISOString()
+    };
+
+    day.expenses.push(newExpense);
+    await this.commitChanges();
+    return newExpense;
+  }
+
+  async updateExpense(dayId, expId, updatedData) {
+    const day = this.data.itinerary.find(d => d.id === dayId);
+    if (!day || !day.expenses) return false;
+
+    const idx = day.expenses.findIndex(e => e.id === expId);
+    if (idx === -1) return false;
+
+    if (updatedData.amount !== undefined) {
+      updatedData.amount = parseMoney(updatedData.amount);
+    }
+
+    day.expenses[idx] = { ...day.expenses[idx], ...updatedData };
+    await this.commitChanges();
+    return true;
+  }
+
+  async deleteExpense(dayId, expId) {
+    const day = this.data.itinerary.find(d => d.id === dayId);
+    if (!day || !day.expenses) return false;
+
+    day.expenses = day.expenses.filter(e => e.id !== expId);
+    await this.commitChanges();
+    return true;
+  }
+
+  getTotalDayExpenses(dayId) {
+    const day = this.getDay(dayId);
+    if (!day || !day.expenses) return 0;
+    return day.expenses.reduce((sum, item) => sum + (parseMoney(item.amount) || 0), 0);
+  }
+
+  getTotalTripExpenses() {
+    let total = 0;
+    let male = 0;
+    let female = 0;
+    let both = 0;
+
+    (this.data.itinerary || []).forEach(day => {
+      (day.expenses || []).forEach(item => {
+        const amt = parseMoney(item.amount) || 0;
+        total += amt;
+        if (item.payer === "Anh") male += amt;
+        else if (item.payer === "Em") female += amt;
+        else both += amt;
+      });
+    });
+
+    return { total, male, female, both };
   }
 
   // ================= 1. MÓN ĂN CỦA CHÚNG MÌNH =================

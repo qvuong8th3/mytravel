@@ -32,7 +32,15 @@ Trang web được thiết kế riêng cho chuyến du lịch lãng mạn tại 
    - Mỗi dự định ghi rõ: **Sẽ làm gì**, **Đi đâu**, **Ăn uống gì**, **Ai lên ý tưởng**, **Chi phí dự kiến**, **Ghi chú**.
    - Checkbox tích chọn **"Đã trải nghiệm"** khi hai bạn đã hoàn thành hoạt động đó!
 
-6. **Cơ Sở Dữ Liệu & Đồng Bộ Tự Động Toàn Hệ Thống:**
+6. **Quản Lý Chi Phí Từng Ngày (Tự Động Tính Tổng Tiền):**
+   - Giao diện thiết kế tương đồng y chang mục Lịch trình với tone màu hồng pastel `#FFD1DC` ngọt ngào.
+   - Phân chia theo từng ngày: **Ngày 1**, **Ngày 2**, **Ngày 3** (có nút **+ Thêm ngày** nếu chuyến đi dài hơn).
+   - Không chia khung giờ sáng trưa chiều tối, chỉ cần điền **Món ăn** và **Số tiền** rồi bấm nút dấu **(+)**.
+   - Hỗ trợ nhập tiền thông minh linh hoạt: `50.000`, `50000`, `50k`, `1.5tr`...
+   - **Ô cuối cùng tự động tính tổng số tiền** mà hai bạn đã dùng trong ngày đó một cách chính xác tuyệt đối.
+   - Hiển thị thống kê tổng chi tiêu toàn chuyến đi và phân định rõ ai là người chi (Anh chi / Em chi / Quỹ chung).
+
+7. **Cơ Sở Dữ Liệu & Đồng Bộ Tự Động Toàn Hệ Thống:**
    - **Tự động kết nối Firebase Đám Mây:** Trang web đã được cấu hình mặc định sẵn kết nối Firebase Realtime Database (`mytravel-d332a`, phòng `OanhvaVuong`).
    - **Bất kỳ ai mở link web** trên máy tính hay điện thoại đều **tự động kết nối ngay lập tức**, không cần phải nhập hay cấu hình bất kỳ thứ gì.
    - **Đồng bộ thời gian thực 2 chiều:** Khi một người thêm/sửa/xóa món ăn, địa điểm hay tích chọn hoạt động trên lịch trình, máy của người kia sẽ cập nhật ngay tức thì mà không cần tải lại trang.
