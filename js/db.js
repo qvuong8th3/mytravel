@@ -120,11 +120,7 @@ class TripDatabase {
               completed: false
             }
           ],
-          expenses: [
-            { id: "exp_101", name: "Bún chả cá Ngọc Liên (2 tô)", amount: 70000, payer: "Anh", notes: "Ăn sáng ngày đầu tiên" },
-            { id: "exp_102", name: "Bánh xèo tôm nhảy Gia Vỹ (4 cái)", amount: 140000, payer: "Em", notes: "Cuốn rau mầm giòn rụm" },
-            { id: "exp_103", name: "Đại tiệc ốc đêm Thúy Kiều & Chè Nhớ", amount: 250000, payer: "Cả hai", notes: "Ốc hương xào me & chè thái" }
-          ]
+          expenses: []
         },
         {
           id: "day_2",
@@ -182,11 +178,7 @@ class TripDatabase {
               completed: false
             }
           ],
-          expenses: [
-            { id: "exp_201", name: "Bánh hỏi lòng heo Mẫn (2 phần)", amount: 100000, payer: "Anh", notes: "Ăn sáng trước khi đi Eo Gió" },
-            { id: "exp_202", name: "Đại tiệc hải sản Leng Keng Nhơn Lý", amount: 750000, payer: "Cả hai", notes: "Cua huỳnh đế & mực nướng" },
-            { id: "exp_203", name: "Cafe ngắm hoàng hôn Surf Bar", amount: 120000, payer: "Em", notes: "2 ly mocktail bãi biển" }
-          ]
+          expenses: []
         },
         {
           id: "day_3",
@@ -232,57 +224,11 @@ class TripDatabase {
               completed: false
             }
           ],
-          expenses: [
-            { id: "exp_301", name: "Bún rạm & Bún tôm Mỹ Hạnh", amount: 80000, payer: "Em", notes: "Kèm bánh tráng nướng" },
-            { id: "exp_302", name: "Gà chỉ nướng cơm lam Sáu Cao", amount: 320000, payer: "Anh", notes: "Gà đồi thả vườn nướng lu" },
-            { id: "exp_303", name: "Bánh ít lá gai & nem Chợ Huyện làm quà", amount: 350000, payer: "Cả hai", notes: "Đóng thùng xốp mang về" }
-          ]
+          expenses: []
         }
       ],
-      customFoods: [
-        {
-          id: "cf_1",
-          name: "Bánh tráng nướng & Trứng cút lộn xào me Phan Bội Châu",
-          type: "Ăn vặt / Ăn đêm",
-          address: "Đoạn đường Phan Bội Châu giao Trần Bình Trọng",
-          creator: "Em",
-          notes: "Thấy review trên TikTok bảo nước sốt me ở đây đỉnh chóp, nhất định phải thử!",
-          addedAt: new Date().toISOString(),
-          favorite: true
-        },
-        {
-          id: "cf_2",
-          name: "Hải sản tươi sống đêm khu phố Hoa Lư",
-          type: "Hải sản tươi sống",
-          address: "Đường Hoa Lư, TP. Quy Nhơn",
-          creator: "Anh",
-          notes: "Nhiều loại ốc biển lạ tươi rói, gọi thêm đĩa sò điệp nướng mỡ hành cho em yêu.",
-          addedAt: new Date().toISOString(),
-          favorite: true
-        }
-      ],
-      customDestinations: [
-        {
-          id: "cd_1",
-          name: "Cây cầu gỗ Hòn Khô & Con đường cát xuyên biển",
-          type: "Biển đảo / Tắm biển",
-          address: "Thôn Hải Đông, Xã Nhơn Hải",
-          creator: "Anh",
-          notes: "Anh muốn dắt em đi dạo trên cây cầu gỗ ôm vách đá sát mép sóng, chụp ảnh đôi hoàng hôn thật đẹp.",
-          addedAt: new Date().toISOString(),
-          favorite: true
-        },
-        {
-          id: "cd_2",
-          name: "Tiệm Cafe Bãi Xép ngắm sóng vỗ",
-          type: "Cafe chill ven biển",
-          address: "Khu du lịch Bãi Xép, Ghềnh Ráng",
-          creator: "Em",
-          notes: "Chỗ này ngồi uống nước dừa nghe tiếng sóng vỗ rì rào cực kỳ lãng mạn, hai đứa mình nhất định phải ghé!",
-          addedAt: new Date().toISOString(),
-          favorite: true
-        }
-      ],
+      customFoods: [],
+      customDestinations: [],
       customPlaces: []
     };
   }
@@ -290,33 +236,46 @@ class TripDatabase {
   normalizeData(rawData) {
     if (!rawData) return this.getDefaultData();
 
-    let foods = rawData.customFoods;
-    if (!foods && rawData.customPlaces) {
+    let foods = rawData.customFoods || [];
+    if (!foods.length && rawData.customPlaces) {
       foods = rawData.customPlaces.filter(p => !p.type || (!p.type.includes("Check-in") && !p.type.includes("Cafe") && !p.type.includes("Biển")));
     }
+    // Xóa các món gợi ý mẫu cũ (cf_1, cf_2) để hai bạn tự điền
+    foods = foods.filter(item => item && item.id !== "cf_1" && item.id !== "cf_2");
 
-    let destinations = rawData.customDestinations;
-    if (!destinations && rawData.customPlaces) {
+    let destinations = rawData.customDestinations || [];
+    if (!destinations.length && rawData.customPlaces) {
       destinations = rawData.customPlaces.filter(p => p.type && (p.type.includes("Check-in") || p.type.includes("Cafe") || p.type.includes("Biển")));
     }
+    // Xóa các địa điểm gợi ý mẫu cũ (cd_1, cd_2) để hai bạn tự điền
+    destinations = destinations.filter(item => item && item.id !== "cd_1" && item.id !== "cd_2");
 
     const defaultData = this.getDefaultData();
     let itinerary = (rawData.itinerary && rawData.itinerary.length) ? rawData.itinerary : defaultData.itinerary;
-    itinerary.forEach((day, idx) => {
+
+    const sampleExpenseIds = [
+      "exp_101", "exp_102", "exp_103",
+      "exp_201", "exp_202", "exp_203",
+      "exp_301", "exp_302", "exp_303"
+    ];
+
+    itinerary.forEach((day) => {
       if (!day.activities || !Array.isArray(day.activities)) {
         day.activities = [];
       }
       if (!day.expenses || !Array.isArray(day.expenses)) {
-        const defaultDay = defaultData.itinerary[idx];
-        day.expenses = (defaultDay && defaultDay.id === day.id && defaultDay.expenses) ? [...defaultDay.expenses] : [];
+        day.expenses = [];
+      } else {
+        // Xóa sạch các ví dụ mẫu chi phí để hai bạn tự điền
+        day.expenses = day.expenses.filter(exp => exp && !sampleExpenseIds.includes(exp.id));
       }
     });
 
     return {
       tripInfo: { ...defaultData.tripInfo, ...(rawData.tripInfo || {}) },
       itinerary: itinerary,
-      customFoods: (foods && foods.length) ? foods : defaultData.customFoods,
-      customDestinations: (destinations && destinations.length) ? destinations : defaultData.customDestinations,
+      customFoods: foods,
+      customDestinations: destinations,
       customPlaces: []
     };
   }
@@ -354,6 +313,7 @@ class TripDatabase {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         this.data = this.normalizeData(JSON.parse(saved));
+        this.saveToLocalStorage();
       } else {
         this.data = this.getDefaultData();
         this.saveToLocalStorage();
@@ -453,6 +413,7 @@ class TripDatabase {
           console.log("Đã tải dữ liệu từ Firebase Cloud về máy.");
           this.data = this.normalizeData(cloudData);
           this.saveToLocalStorage();
+          this.syncToFirebase();
           this.isCloudConnected = true;
           this.notifyListeners();
         } else {
