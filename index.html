@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chuyến Du Lịch Quy Nhơn Của Chúng Mình ❤️🌊</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20%220%22%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              teal: '#0891b2',
+              darkteal: '#0e7490',
+              rose: '#f43f5e',
+              pink: '#fb7185',
+              sand: '#fef3c7'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Firebase Compat SDKs (Phục vụ đồng bộ thời gian thực 2 người trên mạng) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-rose-200 selection:text-rose-900">
+  <script>
+    const PASSWORD_CHUNG = "28012025"; // Đặt mật khẩu của hai bạn tại đây
+
+    let nhapPass = prompt("Nhập mật khẩu để vào trang web của hai đứa mình:");
+
+    if (nhapPass === PASSWORD_CHUNG) {
+      alert("Đăng nhập thành công!");
+    } else {
+      alert("Sai mật khẩu rồi!");
+      // Khóa toàn bộ nội dung nếu nhập sai hoặc nhấn Hủy (Cancel)
+      document.body.innerHTML = `
+        <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; font-family: sans-serif; padding: 20px; text-align: center;">
+          <h2 style="color: #e11d48; font-size: 20px; font-weight: bold; margin-bottom: 12px;">Bạn không có quyền truy cập trang web này!</h2>
+          <p style="color: #64748b; font-size: 14px; margin-bottom: 16px;">Vui lòng tải lại trang để thử nhập lại mật khẩu đúng.</p>
+          <button onclick="location.reload()" style="background-color: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer;">Tải lại trang</button>
+        </div>
+      `;
+    }
+  </script>
+
+  <!-- ================= TOP HEADER NAVIGATION ================= -->
+  <header class="sticky top-0 z-40 glass-nav transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Couple Badge -->
+      <div class="flex items-center gap-3">
+        <a href="#" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-rose-200 group-hover:rotate-6 transition-transform">
+            <i class="fas fa-heart text-lg"></i>
+          </div>
+          <div>
+            <span class="font-bold text-slate-800 text-sm sm:text-base tracking-tight flex items-center gap-1.5">
+              Quy Nhơn Trip <span class="text-rose-500 font-romantic text-lg">with Love</span>
+            </span>
+            <span id="hero-couple-names" class="text-xs text-slate-500 block -mt-1 font-medium">
+              Anh yêu ❤️ Em yêu
+            </span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Desktop Nav Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+        <button data-tab-target="home" class="nav-tab-btn active px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center gap-2">
+          <i class="fas fa-compass text-cyan-600"></i> Gợi Ý Quy Nhơn
+        </button>
+        <button data-tab-target="wishlist" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center gap-2">
+          <i class="fas fa-utensils text-rose-500"></i> Món Ăn Của Chúng Mình
+        </button>
+        <button data-tab-target="destinations" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center gap-2">
+          <i class="fas fa-map-marker-alt text-amber-500"></i> Những Nơi Sẽ Đến
+        </button>
+        <button data-tab-target="itinerary" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center gap-2">
+          <i class="fas fa-calendar-alt text-teal-600"></i> Dự Định Lịch Trình
+        </button>
+      </nav>
+
+      <!-- Right Action: Sync Status & Settings Modal -->
+      <div class="flex items-center gap-2">
+        <div id="sync-status-badge" onclick="openSettingsModal()" title="Bấm để cấu hình đồng bộ 2 người" class="cursor-pointer">
+          <!-- Rendered dynamically in app.js -->
+        </div>
+
+        <button onclick="openSettingsModal()" class="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:text-cyan-600 hover:border-cyan-300 transition shadow-sm" title="Cài đặt chuyến đi & Đồng bộ">
+          <i class="fas fa-cog"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= HERO BANNER SECTION ================= -->
+  <section class="hero-banner relative overflow-hidden py-16 px-4">
+    <!-- Overlay Gradient & Lighting -->
+    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-slate-900/40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto text-center text-white">
+      
+
+      <!-- Main Title -->
+      <h1 id="hero-trip-title" class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 drop-shadow-md">
+        Chuyến Du Lịch Quy Nhơn Ngọt Ngào
+      </h1>
+
+      <!-- Love Note Quote -->
+      <p id="hero-love-note" class="text-base sm:text-xl text-rose-200 font-romantic italic max-w-2xl mx-auto mb-6">
+        "Cùng nhau đón bình minh, ăn hết món ngon Quy Nhơn và lưu lại thật nhiều kỷ niệm đẹp nhé!"
+      </p>
+
+      <!-- Hotel & Location Info -->
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900/40 border border-white/10 text-xs sm:text-sm text-cyan-200 mb-8 backdrop-blur-sm">
+        <i class="fas fa-hotel text-amber-400"></i>
+        <span id="hero-hotel-info">Khách sạn đường Xuân Diệu • TP. Quy Nhơn</span>
+      </div>
+
+      <!-- Countdown Card Floating -->
+      <div class="glass-card max-w-xl mx-auto rounded-3xl p-5 sm:p-6 text-slate-800 shadow-2xl border border-white/80">
+        <p id="countdown-label" class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 flex items-center justify-center gap-1.5">
+          <i class="fas fa-hourglass-half text-rose-500"></i> Đếm ngược ngày lên đường
+        </p>
+
+        <div class="grid grid-cols-3 gap-3 sm:gap-4 text-center">
+          <div class="bg-gradient-to-b from-cyan-50 to-cyan-100/60 rounded-2xl p-3 border border-cyan-200/60">
+            <span id="countdown-days" class="text-2xl sm:text-4xl font-extrabold text-cyan-800 block">--</span>
+            <span class="text-xs font-semibold text-cyan-600 uppercase">Ngày</span>
+          </div>
+          <div class="bg-gradient-to-b from-rose-50 to-rose-100/60 rounded-2xl p-3 border border-rose-200/60">
+            <span id="countdown-hours" class="text-2xl sm:text-4xl font-extrabold text-rose-800 block">--</span>
+            <span class="text-xs font-semibold text-rose-600 uppercase">Giờ</span>
+          </div>
+          <div class="bg-gradient-to-b from-teal-50 to-teal-100/60 rounded-2xl p-3 border border-teal-200/60">
+            <span id="countdown-minutes" class="text-2xl sm:text-4xl font-extrabold text-teal-800 block">--</span>
+            <span class="text-xs font-semibold text-teal-600 uppercase">Phút</span>
+          </div>
+        </div>
+
+        <!-- Quick CTA Buttons inside Countdown -->
+        <div class="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-3">
+          <button onclick="switchTab('itinerary')" class="px-4 py-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-cyan-200 transition flex items-center gap-2">
+            <i class="fas fa-calendar-check"></i> Lịch Trình Ngày 1-2-3
+          </button>
+          <button onclick="switchTab('wishlist')" class="px-4 py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-xs sm:text-sm font-bold shadow-md shadow-rose-200 transition flex items-center gap-2">
+            <i class="fas fa-utensils"></i> Món Ăn Của Đôi Mình
+          </button>
+          <button onclick="switchTab('destinations')" class="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs sm:text-sm font-bold shadow-md shadow-amber-200 transition flex items-center gap-2">
+            <i class="fas fa-map-marked-alt"></i> Những Nơi Sẽ Đến
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= MAIN CONTENT PANE CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+    <!-- ================= TAB 1: KHÁM PHÁ & GỢI Ý (HOME) ================= -->
+    <div id="tab-pane-home" class="tab-content-pane">
+      
+      <!-- Section Header -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800 inline-block mb-2">
+            🍜 Thiên Đường Ẩm Thực Xứ Nẫu
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Gợi Ý Món Ăn & Địa Chỉ Nổi Tiếng
+          </h2>
+          <p class="text-sm text-slate-600 mt-1">
+            Tuyển chọn các món ngon chính gốc Quy Nhơn, kèm địa chỉ chuẩn, khoảng giá và mẹo thưởng thức cho 2 bạn.
+          </p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="w-full md:w-72 relative">
+          <input type="text" id="search-foods" placeholder="Tìm món ăn, địa chỉ..." class="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 focus:outline-none focus:border-cyan-500 bg-white text-xs sm:text-sm shadow-sm transition">
+          <i class="fas fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+        </div>
+      </div>
+
+      <!-- Food Filter Category Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+        <button data-food-filter="all" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-cyan-600 text-white shrink-0 transition">
+          Tất cả món ăn
+        </button>
+        <button data-food-filter="Ăn sáng" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-cyan-400 shrink-0 transition">
+          🌅 Món ăn sáng (Bún chả cá, Bánh hỏi...)
+        </button>
+        <button data-food-filter="Ăn chính" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-cyan-400 shrink-0 transition">
+          🍱 Bữa chính (Bánh xèo, Gà chỉ...)
+        </button>
+        <button data-food-filter="Hải sản" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-cyan-400 shrink-0 transition">
+          🦀 Hải sản tươi sống
+        </button>
+        <button data-food-filter="Ăn vặt" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-cyan-400 shrink-0 transition">
+          🍢 Ăn vặt chiều & Ốc đêm
+        </button>
+        <button data-food-filter="Tráng miệng" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-cyan-400 shrink-0 transition">
+          🍧 Chè & Tráng miệng
+        </button>
+      </div>
+
+      <!-- Foods Grid Container -->
+      <div id="home-foods-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Section: Famous Places -->
+      <div class="mb-8 pt-8 border-t border-slate-200">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 inline-block mb-2">
+          📸 Danh Thắng & Điểm Sống Ảo
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Cảnh Đẹp Quy Nhơn Cho Đôi Ta
+        </h2>
+        <p class="text-sm text-slate-600 mt-1">
+          Những tọa độ lãng mạn không thể bỏ lỡ khi đến mảnh đất biển xanh cát trắng Bình Định.
+        </p>
+      </div>
+
+      <!-- Places Grid Container -->
+      <div id="home-places-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+    </div>
+
+    <!-- ================= TAB 2: MÓN ĂN CỦA CHÚNG MÌNH ================= -->
+    <div id="tab-pane-wishlist" class="tab-content-pane hidden">
+      
+      <!-- Header -->
+      <div class="mb-8">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 inline-block mb-2">
+          🍜 Hương Vị Yêu Thích
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Món Ăn Của Chúng Mình
+        </h2>
+        <p class="text-sm text-slate-600 mt-1">
+          Hai bạn lướt TikTok, Facebook thấy quán ăn hay món ngon nào hấp dẫn? Hãy tự gõ thêm vào đây để cùng nhau thưởng thức nhé!
+        </p>
+      </div>
+
+      <!-- Form Tự Điền Món Ăn -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 mb-10">
+        <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+            <i class="fas fa-utensils"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">Thêm Món Ăn / Quán Ăn Mới</h3>
+            <p class="text-xs text-slate-500">Mục này sẽ tự động lưu vào database để cả 2 cùng xem và chọn</p>
+          </div>
+        </div>
+
+        <form id="form-add-custom-food" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Tên món / quán -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Tên Món Ăn Hoặc Quán Ăn Muốn Ghé <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="cf-name" required placeholder="Ví dụ: Bún sứa Thuận Biển, Ốc cô Xí, Bánh xèo mực sữa..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-500 text-sm">
+            </div>
+
+            <!-- Phân loại -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Phân Loại Món
+              </label>
+              <select id="cf-type" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-500 text-sm bg-white">
+                <option value="Món ăn chính">🍱 Món ăn chính</option>
+                <option value="Ăn sáng">🌅 Món ăn sáng</option>
+                <option value="Hải sản tươi sống">🦀 Hải sản tươi sống</option>
+                <option value="Ăn vặt / Ăn đêm">🍢 Ăn vặt chiều & Ốc đêm</option>
+                <option value="Quà đặc sản">🎁 Bánh đặc sản mua về</option>
+                <option value="Tráng miệng">🍧 Chè & Tráng miệng</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Địa chỉ -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Địa Chỉ Quán / Khu Vực
+              </label>
+              <input type="text" id="cf-address" placeholder="Ví dụ: 415 Nguyễn Huệ, hoặc gần chợ Đầm" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-500 text-sm">
+            </div>
+
+            <!-- Ai là người thêm -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Người Đề Xuất
+              </label>
+              <select id="cf-creator" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-500 text-sm bg-white font-semibold text-slate-700">
+                <option value="Anh">👨 Anh đề xuất</option>
+                <option value="Em">👩 Em đề xuất</option>
+                <option value="Cả hai">❤️ Cả hai cùng thích</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- Ghi chú riêng -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+              Ghi Chú Yêu Thương / Review Món
+            </label>
+            <input type="text" id="cf-notes" placeholder="Ví dụ: Review bảo nhớ thử thêm nước chấm ớt rim cay nồng, ăn nóng siêu ngon..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-500 text-sm">
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2 flex justify-end">
+            <button type="submit" class="w-full sm:w-auto px-8 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-sm shadow-lg shadow-rose-200 transition flex items-center justify-center gap-2">
+              <i class="fas fa-plus-circle"></i> Thêm Vào Danh Sách Món Ăn
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Danh sách món đã tự điền -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <h3 class="font-bold text-xl text-slate-900">Danh Sách Món Ăn Đã Lưu</h3>
+          <span id="custom-foods-count" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">0</span>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs">
+          <button data-food-filter-creator="all" class="px-3 py-1.5 rounded-lg font-semibold bg-rose-500 text-white transition">Tất cả</button>
+          <button data-food-filter-creator="Anh" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-rose-600 transition">👨 Anh</button>
+          <button data-food-filter-creator="Em" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-rose-600 transition">👩 Em</button>
+          <button data-food-filter-creator="fav" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-rose-600 transition">❤️ Yêu thích</button>
+        </div>
+      </div>
+
+      <!-- Foods Grid -->
+      <div id="custom-foods-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+    </div>
+
+    <!-- ================= TAB 3: NHỮNG NƠI CHÚNG TA SẼ ĐẾN ================= -->
+    <div id="tab-pane-destinations" class="tab-content-pane hidden">
+      
+      <!-- Header -->
+      <div class="mb-8">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 inline-block mb-2">
+          📸 Tọa Độ Sống Ảo & Khám Phá
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Những Nơi Chúng Ta Sẽ Đến
+        </h2>
+        <p class="text-sm text-slate-600 mt-1">
+          Các bãi biển, danh lam thắng cảnh, điểm check-in hay quán cafe chill mà hai bạn muốn cùng nhau đặt chân tới. Hãy tự do điền thêm nhé!
+        </p>
+      </div>
+
+      <!-- Form Tự Điền Điểm Đến -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 mb-10">
+        <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">Thêm Địa Điểm / Tọa Độ Sống Ảo Mới</h3>
+            <p class="text-xs text-slate-500">Mục này sẽ tự động lưu vào database để cả 2 cùng theo dõi</p>
+          </div>
+        </div>
+
+        <form id="form-add-custom-destination" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Tên địa điểm -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Tên Địa Điểm / Tọa Độ Muốn Đến <span class="text-amber-500">*</span>
+              </label>
+              <input type="text" id="cd-name" required placeholder="Ví dụ: Đón bình minh Eo Gió, Cầu gỗ Hòn Khô, Tiệm Cafe Bãi Xép..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 text-sm">
+            </div>
+
+            <!-- Phân loại -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Phân Loại Điểm Đến
+              </label>
+              <select id="cd-type" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 text-sm bg-white">
+                <option value="Biển đảo / Tắm biển">🏖️ Biển đảo & Bãi tắm</option>
+                <option value="Check-in / Sống ảo">📸 Check-in & Sống ảo</option>
+                <option value="Cafe chill ven biển">☕ Quán Cafe chill view biển</option>
+                <option value="Di tích / Danh thắng">🏛️ Di tích & Danh thắng</option>
+                <option value="Chợ đêm / Mua sắm">🛍️ Chợ đêm & Dạo phố</option>
+                <option value="Bình minh / Hoàng hôn">🌅 Ngắm bình minh / hoàng hôn</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Địa chỉ / Hướng đi -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Địa Chỉ Hoặc Khu Vực / Hướng Đi
+              </label>
+              <input type="text" id="cd-address" placeholder="Ví dụ: Xã Nhơn Lý, Hoặc dọc đường đèo Quy Nhơn - Sông Cầu" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 text-sm">
+            </div>
+
+            <!-- Ai là người thêm -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                Người Đề Xuất
+              </label>
+              <select id="cd-creator" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 text-sm bg-white font-semibold text-slate-700">
+                <option value="Anh">👨 Anh đề xuất</option>
+                <option value="Em">👩 Em đề xuất</option>
+                <option value="Cả hai">❤️ Cả hai cùng thích</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- Ghi chú riêng -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+              Ghi Chú Yêu Thương / Bí Kíp Sống Ảo
+            </label>
+            <input type="text" id="cd-notes" placeholder="Ví dụ: Nhớ mang váy maxi sáng màu chụp ảnh, đến trước 6h sáng để ngắm mặt trời mọc..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 text-sm">
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2 flex justify-end">
+            <button type="submit" class="w-full sm:w-auto px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-sm shadow-lg shadow-amber-200 transition flex items-center justify-center gap-2">
+              <i class="fas fa-map-pin"></i> Thêm Vào Danh Sách Nơi Sẽ Đến
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Danh sách điểm đến đã tự điền -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <h3 class="font-bold text-xl text-slate-900">Danh Sách Nơi Sẽ Đến Đã Lưu</h3>
+          <span id="custom-destinations-count" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">0</span>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs">
+          <button data-destination-filter-creator="all" class="px-3 py-1.5 rounded-lg font-semibold bg-amber-500 text-white transition">Tất cả</button>
+          <button data-destination-filter-creator="Anh" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-amber-600 transition">👨 Anh</button>
+          <button data-destination-filter-creator="Em" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-amber-600 transition">👩 Em</button>
+          <button data-destination-filter-creator="fav" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-rose-600 transition">❤️ Yêu thích</button>
+        </div>
+      </div>
+
+      <!-- Destinations Grid -->
+      <div id="custom-destinations-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+    </div>
+
+    <!-- ================= TAB 4: DỰ ĐỊNH LỊCH TRÌNH (NGÀY 1, NGÀY 2, NGÀY 3) ================= -->
+    <div id="tab-pane-itinerary" class="tab-content-pane hidden">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <span style="background-color: #FFD1DC;" class="px-3.5 py-1 rounded-full text-xs font-bold text-rose-900 border border-rose-200 inline-block mb-2 shadow-sm">
+            📅 Kế Hoạch Từng Ngày
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Dự Định Lịch Trình Khám Phá
+          </h2>
+          <p class="text-sm text-slate-600 mt-1">
+            Chia rõ ràng <strong>Ngày 1, Ngày 2, Ngày 3</strong> với các khung giờ Sáng - Trưa - Chiều - Tối. Hai bạn tự do điền sẽ làm gì, ăn gì, đi đâu nhé!
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openAddActivityModal(currentDayId)" style="background-color: #FFD1DC;" class="px-5 py-2.5 rounded-2xl text-rose-950 text-xs sm:text-sm font-bold shadow-md hover:brightness-95 border border-rose-200 transition flex items-center gap-2">
+            <i class="fas fa-plus-circle text-rose-500"></i> + Điền Dự Định Mới
+          </button>
+        </div>
+      </div>
+
+      <!-- Day Tabs Switcher (Ngày 1, Ngày 2, Ngày 3...) -->
+      <div id="itinerary-days-tabs" class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 no-scrollbar">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Itinerary Day Content Container -->
+      <div id="itinerary-day-content">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= MOBILE BOTTOM NAVIGATION BAR ================= -->
+  <div class="mobile-bottom-nav md:hidden shadow-2xl">
+    <div class="grid grid-cols-4 py-2 px-1 text-center">
+      <button data-tab-target="home" class="flex flex-col items-center justify-center py-1 text-cyan-600 font-bold">
+        <i class="fas fa-compass text-base mb-1"></i>
+        <span class="text-[10px]">Gợi Ý</span>
+      </button>
+      <button data-tab-target="wishlist" class="flex flex-col items-center justify-center py-1 text-slate-500">
+        <i class="fas fa-utensils text-base mb-1"></i>
+        <span class="text-[10px]">Món Ăn</span>
+      </button>
+      <button data-tab-target="destinations" class="flex flex-col items-center justify-center py-1 text-slate-500">
+        <i class="fas fa-map-marker-alt text-base mb-1"></i>
+        <span class="text-[10px]">Nơi Đến</span>
+      </button>
+      <button data-tab-target="itinerary" class="flex flex-col items-center justify-center py-1 text-slate-500">
+        <i class="fas fa-calendar-alt text-base mb-1"></i>
+        <span class="text-[10px]">Lịch Trình</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM DỰ ĐỊNH CHO NGÀY X ================= -->
+  <div id="modal-add-activity" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+          <i class="fas fa-edit text-cyan-600"></i> Điền Dự Định Lịch Trình
+        </h3>
+        <button onclick="closeAddActivityModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form id="form-add-activity" onsubmit="handleAddActivitySubmit(event)" class="space-y-4">
+        
+        <!-- Chọn Ngày & Khung Giờ -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vào Ngày Nào? <span class="text-rose-500">*</span></label>
+            <select id="modal-act-day" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium">
+              <!-- Rendered dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Buổi Nào? <span class="text-rose-500">*</span></label>
+            <select id="modal-act-slot" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium">
+              <option value="Sáng">🌅 Buổi Sáng</option>
+              <option value="Trưa">☀️ Buổi Trưa</option>
+              <option value="Chiều">🌇 Buổi Chiều</option>
+              <option value="Tối">🌙 Buổi Tối</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Khung giờ cụ thể & Ai đề xuất -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giờ Dự Kiến</label>
+            <input type="text" id="modal-act-time" placeholder="VD: 07:30 - 09:00" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ai Lên Ý Tưởng?</label>
+            <select id="modal-act-creator" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium">
+              <option value="Anh">👨 Anh</option>
+              <option value="Em">👩 Em</option>
+              <option value="Cả hai">❤️ Cả hai</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sẽ làm gì (Tiêu đề) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sẽ Làm Gì? (Tiêu đề) <span class="text-rose-500">*</span></label>
+          <input type="text" id="modal-act-title" required placeholder="VD: Đón bình minh, lặn ngắm san hô, check-in Bãi Xép..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+        </div>
+
+        <!-- Đi đâu & Ăn uống gì -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đi Đâu?</label>
+            <input type="text" id="modal-act-location" placeholder="VD: Eo Gió, Bãi Kỳ Co..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ăn Uống Gì?</label>
+            <input type="text" id="modal-act-food" placeholder="VD: Bánh xèo tôm nhảy, hải sản..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <!-- Dự trù chi phí & Ghi chú -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chi Phí Ước Tính</label>
+            <input type="text" id="modal-act-cost" placeholder="VD: 150.000đ" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ghi Chú / Lưu Ý</label>
+            <input type="text" id="modal-act-notes" placeholder="VD: Mang váy maxi trắng, sạc đầy pin máy ảnh..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <!-- Submit & Cancel -->
+        <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddActivityModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            Hủy
+          </button>
+          <button type="submit" style="background-color: #FFD1DC;" class="px-6 py-2.5 rounded-xl text-rose-950 border border-rose-200 hover:brightness-95 text-xs font-bold shadow-md transition">
+            Lưu Dự Định Này
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM NHANH TỪ GỢI Ý VÀO LỊCH TRÌNH ================= -->
+  <div id="modal-quick-add" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fas fa-calendar-plus text-rose-500"></i> Thêm Vào Lịch Trình
+        </h3>
+        <button onclick="closeQuickAddModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center">
+          <i class="fas fa-times text-xs"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleQuickAddSubmit(event)" class="space-y-3.5">
+        
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mục Sẽ Thêm</label>
+          <input type="text" id="quick-add-title" readonly class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chọn Ngày <span class="text-rose-500">*</span></label>
+            <select id="quick-add-day" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium">
+              <!-- Rendered dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chọn Buổi <span class="text-rose-500">*</span></label>
+            <select id="quick-add-slot" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-medium">
+              <option value="Sáng">🌅 Buổi Sáng</option>
+              <option value="Trưa">☀️ Buổi Trưa</option>
+              <option value="Chiều">🌇 Buổi Chiều</option>
+              <option value="Tối">🌙 Buổi Tối</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Địa Chỉ / Điểm Đến</label>
+          <input type="text" id="quick-add-location" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+        </div>
+
+        <input type="hidden" id="quick-add-food">
+        <input type="hidden" id="quick-add-notes">
+        <input type="hidden" id="quick-add-creator">
+
+        <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeQuickAddModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            Hủy
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-200 transition">
+            Xác Nhận Thêm
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CÀI ĐẶT CHUYẾN ĐI & ĐỒNG BỘ CLOUD (2 NGƯỜI) ================= -->
+  <div id="modal-settings" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+          <i class="fas fa-sliders-h text-cyan-600"></i> Cài Đặt Chuyến Đi & Đồng Bộ 2 Người
+        </h3>
+        <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveSettings(event)" class="space-y-4">
+        
+        <!-- Tab Cài Đặt 1: Thông tin cặp đôi -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+          <h4 class="font-bold text-xs uppercase text-slate-700 flex items-center gap-1.5">
+            <i class="fas fa-heart text-rose-500"></i> 1. Thông Tin Cặp Đôi & Chuyến Đi
+          </h4>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tên Anh</label>
+              <input type="text" id="cfg-male-name" placeholder="Ví dụ: Anh yêu / Quốc" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tên Em</label>
+              <input type="text" id="cfg-female-name" placeholder="Ví dụ: Em yêu / Vy" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Tiêu Đề Chuyến Đi</label>
+            <input type="text" id="cfg-trip-title" placeholder="Ví dụ: Chuyến Du Lịch Quy Nhơn Ngọt Ngào" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Ngày Khởi Hành (Đếm ngược)</label>
+              <input type="date" id="cfg-start-date" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Ngày Về</label>
+              <input type="date" id="cfg-end-date" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tên Khách Sạn / Homestay</label>
+              <input type="text" id="cfg-hotel-name" placeholder="Khách sạn view biển" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Địa Chỉ Khách Sạn</label>
+              <input type="text" id="cfg-hotel-address" placeholder="Đường Xuân Diệu" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Lời Nhắn Nhủ Yêu Thương</label>
+            <input type="text" id="cfg-love-note" placeholder="Lời nhắn gửi đến người yêu..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+          </div>
+        </div>
+
+        <!-- Tab Cài Đặt 2: Đồng bộ Đám Mây (Firebase Database) -->
+        <div class="p-4 rounded-2xl bg-cyan-50/50 border border-cyan-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs uppercase text-cyan-900 flex items-center gap-1.5">
+              <i class="fas fa-cloud text-cyan-600"></i> 2. Đồng Bộ Đám Mây Tự Động (Oanh ❤️ Vương)
+            </h4>
+            <span class="text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-semibold">Tự Động Kết Nối</span>
+          </div>
+
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Hệ thống đã tự động cài đặt sẵn Firebase cho cả 2 bạn. Khi một người thêm món ăn, thêm địa điểm hoặc tích hoàn thành trên điện thoại/máy tính, máy của người kia sẽ <strong>tự động đồng bộ ngay lập tức</strong> mà không cần cài đặt gì thêm.
+          </p>
+
+          <div class="space-y-2 text-xs">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Firebase Database URL</label>
+              <input type="text" id="cfg-fb-url" value="https://mytravel-d332a-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://mytravel-d332a-default-rtdb.asia-southeast1.firebasedatabase.app" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">API Key</label>
+                <input type="text" id="cfg-fb-key" value="AIzaSyAs2QVsFD2eGxxDuUHPWNwHFiqzcBAIFO0" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Project ID</label>
+                <input type="text" id="cfg-fb-project" value="mytravel-d332a" placeholder="mytravel-d332a" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+              </div>
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Mã Phòng / Tên Chuyến Đi (Dùng chung cho 2 bạn)</label>
+              <input type="text" id="cfg-fb-room" value="OanhvaVuong" placeholder="OanhvaVuong" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+            </div>
+          </div>
+
+          <details class="text-xs text-slate-500 pt-1 cursor-pointer">
+            <summary class="font-semibold text-cyan-700 hover:underline">👉 Bấm vào đây để xem cách tạo Firebase miễn phí trong 2 phút</summary>
+            <div class="mt-2 p-3 bg-white rounded-xl border border-slate-200 space-y-1.5 text-slate-600">
+              <p>1. Vào <a href="https://console.firebase.google.com" target="_blank" class="text-cyan-600 underline">console.firebase.google.com</a>, đăng nhập bằng Gmail và bấm "Add project".</p>
+              <p>2. Chọn mục <strong>Build -> Realtime Database</strong> -> Bấm "Create Database" (chọn chế độ test mode: read: true, write: true).</p>
+              <p>3. Vào Cài đặt dự án (Project Settings) để copy <code>apiKey</code>, <code>databaseURL</code>, <code>projectId</code> dán vào 3 ô ở trên.</p>
+              <p>4. Bấm "Lưu Cài Đặt" là xong! Hai bạn có thể mở web ở bất kỳ đâu để cùng nhau lên lịch trình!</p>
+            </div>
+          </details>
+        </div>
+
+        <!-- Tab Cài Đặt 3: Sao lưu & Phục hồi dữ liệu -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+          <h4 class="font-bold text-xs uppercase text-slate-700 mb-2 flex items-center gap-1.5">
+            <i class="fas fa-file-export text-emerald-600"></i> 3. Sao Lưu & Xuất Dữ Liệu
+          </h4>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="exportTripData()" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition flex items-center gap-1.5">
+              <i class="fas fa-download"></i> Tải file sao lưu (JSON)
+            </button>
+            <label class="px-3.5 py-2 rounded-xl bg-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-300 transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fas fa-upload"></i> Nhập dữ liệu từ file
+              <input type="file" accept=".json" onchange="importTripData(event)" class="hidden">
+            </label>
+            <button type="button" onclick="resetTripData()" class="px-3.5 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition ml-auto">
+              Đặt lại mẫu
+            </button>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            Đóng
+          </button>
+          <button type="submit" style="background-color: #FFD1DC;" class="px-6 py-2.5 rounded-xl text-rose-950 font-bold border border-rose-200 hover:brightness-95 text-xs shadow-md transition">
+            Lưu Cài Đặt
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-16 py-8 border-t border-slate-200 bg-white text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+        <span>Thiết kế dành riêng cho chuyến du lịch Quy Nhơn của hai bạn</span>
+      </div>
+      <p class="font-romantic text-base text-rose-500">Made with ❤️ for our special trip to Quy Nhơn</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
